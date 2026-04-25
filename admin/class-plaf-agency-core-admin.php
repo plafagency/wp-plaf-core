@@ -29,7 +29,7 @@ class Plaf_Agency_Core_Admin {
 	 * @access   private
 	 * @var      string    $plugin_name    The ID of this plugin.
 	 */
-	private $plugin_name;
+	private string $plugin_name;
 
 	/**
 	 * The version of this plugin.
@@ -38,66 +38,100 @@ class Plaf_Agency_Core_Admin {
 	 * @access   private
 	 * @var      string    $version    The current version of this plugin.
 	 */
-	private $version;
+	private string $version;
+
+	/** Hook suffix for the White Label submenu page. */
+	private string $whitelabel_hook = '';
 
 	/**
 	 * Initialize the class and set its properties.
 	 *
 	 * @since    1.0.0
-	 * @param      string    $plugin_name       The name of this plugin.
-	 * @param      string    $version    The version of this plugin.
+	 * @param    string    $plugin_name    The name of this plugin.
+	 * @param    string    $version        The version of this plugin.
 	 */
-	public function __construct( $plugin_name, $version ) {
-
+	public function __construct( string $plugin_name, string $version ) {
 		$this->plugin_name = $plugin_name;
-		$this->version = $version;
-
+		$this->version     = $version;
 	}
 
 	/**
-	 * Register the stylesheets for the admin area.
-	 *
-	 * @since    1.0.0
+	 * Registers the top-level "PLAF Agency" menu and its submenus.
+	 * Fires on: admin_menu
 	 */
-	public function enqueue_styles() {
+	public function add_admin_menu(): void {
+		add_menu_page(
+			__( 'PLAF Agency', 'plaf-agency-core' ),
+			__( 'PLAF Agency', 'plaf-agency-core' ),
+			'manage_options',
+			'plaf-agency-core',
+			'__return_null',
+			'dashicons-shield',
+			60
+		);
 
-		/**
-		 * This function is provided for demonstration purposes only.
-		 *
-		 * An instance of this class should be passed to the run() function
-		 * defined in Plaf_Agency_Core_Loader as all of the hooks are defined
-		 * in that particular class.
-		 *
-		 * The Plaf_Agency_Core_Loader will then create the relationship
-		 * between the defined hooks and the functions defined in this
-		 * class.
-		 */
+		$this->whitelabel_hook = add_submenu_page(
+			'plaf-agency-core',
+			__( 'White Label', 'plaf-agency-core' ),
+			__( 'White Label', 'plaf-agency-core' ),
+			'manage_options',
+			'plaf-whitelabel',
+			[ $this, 'render_whitelabel_page' ]
+		);
 
-		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/plaf-agency-core-admin.css', array(), $this->version, 'all' );
-
+		// Remove the duplicate top-level menu item WordPress creates automatically.
+		remove_submenu_page( 'plaf-agency-core', 'plaf-agency-core' );
 	}
 
 	/**
-	 * Register the JavaScript for the admin area.
-	 *
-	 * @since    1.0.0
+	 * Renders the White Label settings page.
 	 */
-	public function enqueue_scripts() {
+	public function render_whitelabel_page(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'No tenés permiso para acceder a esta página.', 'plaf-agency-core' ) );
+		}
+		require_once plugin_dir_path( __FILE__ ) . 'partials/plaf-agency-core-whitelabel-display.php';
+	}
 
-		/**
-		 * This function is provided for demonstration purposes only.
-		 *
-		 * An instance of this class should be passed to the run() function
-		 * defined in Plaf_Agency_Core_Loader as all of the hooks are defined
-		 * in that particular class.
-		 *
-		 * The Plaf_Agency_Core_Loader will then create the relationship
-		 * between the defined hooks and the functions defined in this
-		 * class.
-		 */
+	/**
+	 * Handles the White Label settings form submission.
+	 * Fires on: admin_post_plaf_save_whitelabel
+	 */
+	public function save_whitelabel_settings(): void {
+		if ( ! isset( $_POST['plaf_whitelabel_nonce'] ) ||
+			! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['plaf_whitelabel_nonce'] ) ), 'plaf_save_whitelabel' )
+		) {
+			wp_die( esc_html__( 'Verificación de seguridad fallida.', 'plaf-agency-core' ) );
+		}
 
-		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/plaf-agency-core-admin.js', array( 'jquery' ), $this->version, false );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'No tenés permiso para realizar esta acción.', 'plaf-agency-core' ) );
+		}
 
+		update_option( 'plaf_client_logo_id', (int) ( $_POST['plaf_client_logo_id'] ?? 0 ) );
+
+		wp_safe_redirect( add_query_arg( 'saved', '1', wp_get_referer() ) );
+		exit;
+	}
+
+	/**
+	 * Enqueues the admin stylesheet.
+	 * Fires on: admin_enqueue_scripts
+	 */
+	public function enqueue_styles( string $hook ): void {
+		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/plaf-agency-core-admin.css', [], $this->version, 'all' );
+	}
+
+	/**
+	 * Enqueues the admin JavaScript. Loads the WP media uploader only on our settings page.
+	 * Fires on: admin_enqueue_scripts
+	 */
+	public function enqueue_scripts( string $hook ): void {
+		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/plaf-agency-core-admin.js', [ 'jquery' ], $this->version, true );
+
+		if ( $hook === $this->whitelabel_hook ) {
+			wp_enqueue_media();
+		}
 	}
 
 }

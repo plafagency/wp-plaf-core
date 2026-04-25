@@ -78,6 +78,7 @@ class Plaf_Agency_Core {
 		$this->set_locale();
 		$this->define_admin_hooks();
 		$this->define_public_hooks();
+		$this->define_login_hooks();
 
 	}
 
@@ -122,6 +123,8 @@ class Plaf_Agency_Core {
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/class-plaf-agency-core-public.php';
 
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-plaf-agency-core-login.php';
+
 		$this->loader = new Plaf_Agency_Core_Loader();
 
 	}
@@ -154,8 +157,10 @@ class Plaf_Agency_Core {
 
 		$plugin_admin = new Plaf_Agency_Core_Admin( $this->get_plugin_name(), $this->get_version() );
 
+		$this->loader->add_action( 'admin_menu', $plugin_admin, 'add_admin_menu' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
+		$this->loader->add_action( 'admin_post_plaf_save_whitelabel', $plugin_admin, 'save_whitelabel_settings' );
 
 	}
 
@@ -172,6 +177,23 @@ class Plaf_Agency_Core {
 
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
+
+	}
+
+	/**
+	 * Register all hooks related to the WordPress login page customization.
+	 *
+	 * @since    1.0.0
+	 * @access   private
+	 */
+	private function define_login_hooks() {
+
+		$plugin_login = new Plaf_Agency_Core_Login();
+
+		$this->loader->add_action( 'login_enqueue_scripts', $plugin_login, 'enqueue_login_styles' );
+		$this->loader->add_action( 'login_head', $plugin_login, 'inject_powered_by' );
+		$this->loader->add_filter( 'login_headerurl', $plugin_login, 'login_header_url' );
+		$this->loader->add_filter( 'login_headertext', $plugin_login, 'login_header_text' );
 
 	}
 
