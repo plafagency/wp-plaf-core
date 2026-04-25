@@ -44,10 +44,10 @@ $orbit_last_sync = get_option( 'plaf_orbit_last_sync', '' );
 						name="plaf_orbit_endpoint"
 						value="<?php echo esc_attr( $orbit_endpoint ); ?>"
 						class="regular-text"
-						placeholder="https://tu-app.netlify.app/.netlify/functions/wordpress-sync"
+						placeholder="https://tu-app.netlify.app/api/wordpress-sync"
 					/>
 					<p class="description">
-						<?php esc_html_e( 'URL de la Netlify Function de Orbit.', 'plaf-agency-core' ); ?>
+						<?php esc_html_e( 'URL de sincronización (ej: https://tu-orbit.com/api/wordpress-sync).', 'plaf-agency-core' ); ?>
 					</p>
 				</td>
 			</tr>
