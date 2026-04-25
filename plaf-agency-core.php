@@ -15,7 +15,7 @@
  * @wordpress-plugin
  * Plugin Name:       PLAF Agency | Core Manager
  * Plugin URI:        https://plaf.agency
- * Description:       This is a description of the plugin.
+ * Description:       Gestor de plugins y settings de PLAF Agency.
  * Version:           1.0.0
  * Author:            PLAF Agency
  * Author URI:        https://plaf.agency/
