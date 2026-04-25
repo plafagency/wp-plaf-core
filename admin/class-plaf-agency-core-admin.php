@@ -43,6 +43,9 @@ class Plaf_Agency_Core_Admin {
 	/** Hook suffix for the White Label submenu page. */
 	private string $whitelabel_hook = '';
 
+	/** Hook suffix for the Orbit submenu page. */
+	private string $orbit_hook = '';
+
 	/**
 	 * Initialize the class and set its properties.
 	 *
@@ -79,6 +82,15 @@ class Plaf_Agency_Core_Admin {
 			[ $this, 'render_whitelabel_page' ]
 		);
 
+		$this->orbit_hook = add_submenu_page(
+			'plaf-agency-core',
+			__( 'Orbit', 'plaf-agency-core' ),
+			__( 'Orbit', 'plaf-agency-core' ),
+			'manage_options',
+			'plaf-orbit',
+			[ $this, 'render_orbit_page' ]
+		);
+
 		// Remove the duplicate top-level menu item WordPress creates automatically.
 		remove_submenu_page( 'plaf-agency-core', 'plaf-agency-core' );
 	}
@@ -91,6 +103,16 @@ class Plaf_Agency_Core_Admin {
 			wp_die( esc_html__( 'No tenés permiso para acceder a esta página.', 'plaf-agency-core' ) );
 		}
 		require_once plugin_dir_path( __FILE__ ) . 'partials/plaf-agency-core-whitelabel-display.php';
+	}
+
+	/**
+	 * Renders the Orbit integration settings page.
+	 */
+	public function render_orbit_page(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'No tenés permiso para acceder a esta página.', 'plaf-agency-core' ) );
+		}
+		require_once plugin_dir_path( __FILE__ ) . 'partials/plaf-agency-core-orbit-display.php';
 	}
 
 	/**
@@ -109,6 +131,25 @@ class Plaf_Agency_Core_Admin {
 		}
 
 		update_option( 'plaf_client_logo_id', (int) ( $_POST['plaf_client_logo_id'] ?? 0 ) );
+
+		wp_safe_redirect( add_query_arg( 'saved', '1', wp_get_referer() ) );
+		exit;
+	}
+
+	/**
+	 * Handles the Orbit integration settings form submission.
+	 * Fires on: admin_post_plaf_save_orbit
+	 */
+	public function save_orbit_settings(): void {
+		if ( ! isset( $_POST['plaf_orbit_nonce'] ) ||
+			! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['plaf_orbit_nonce'] ) ), 'plaf_save_orbit' )
+		) {
+			wp_die( esc_html__( 'Verificación de seguridad fallida.', 'plaf-agency-core' ) );
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'No tenés permiso para realizar esta acción.', 'plaf-agency-core' ) );
+		}
 
 		$orbit_endpoint = sanitize_url( wp_unslash( $_POST['plaf_orbit_endpoint'] ?? '' ) );
 		if ( ! empty( $orbit_endpoint ) ) {
@@ -247,6 +288,9 @@ class Plaf_Agency_Core_Admin {
 
 		if ( $hook === $this->whitelabel_hook ) {
 			wp_enqueue_media();
+		}
+
+		if ( $hook === $this->orbit_hook ) {
 			wp_localize_script(
 				$this->plugin_name,
 				'plafAdmin',
