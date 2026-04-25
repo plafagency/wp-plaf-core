@@ -115,6 +115,39 @@ class Plaf_Agency_Core_Admin {
 	}
 
 	/**
+	 * Customizes the WordPress dashboard widgets.
+	 * - Removes WordPress Events and News for everyone.
+	 * - For non-admins: keeps only At a Glance, Activity, and Quick Draft.
+	 * Fires on: wp_dashboard_setup
+	 */
+	public function customize_dashboard(): void {
+		global $wp_meta_boxes;
+
+		remove_meta_box( 'dashboard_primary', 'dashboard', 'side' );
+
+		if ( current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$allowed    = [ 'dashboard_right_now', 'dashboard_activity', 'dashboard_quick_press' ];
+		$contexts   = [ 'normal', 'side', 'column3', 'column4' ];
+		$priorities = [ 'high', 'core', 'default', 'low' ];
+
+		foreach ( $contexts as $context ) {
+			foreach ( $priorities as $priority ) {
+				if ( empty( $wp_meta_boxes['dashboard'][ $context ][ $priority ] ) ) {
+					continue;
+				}
+				foreach ( array_keys( $wp_meta_boxes['dashboard'][ $context ][ $priority ] ) as $id ) {
+					if ( ! in_array( $id, $allowed, true ) ) {
+						remove_meta_box( $id, 'dashboard', $context );
+					}
+				}
+			}
+		}
+	}
+
+	/**
 	 * Enqueues the admin stylesheet.
 	 * Fires on: admin_enqueue_scripts
 	 */
