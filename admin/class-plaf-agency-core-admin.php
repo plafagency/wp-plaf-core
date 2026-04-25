@@ -110,8 +110,91 @@ class Plaf_Agency_Core_Admin {
 
 		update_option( 'plaf_client_logo_id', (int) ( $_POST['plaf_client_logo_id'] ?? 0 ) );
 
+		$orbit_endpoint = sanitize_url( wp_unslash( $_POST['plaf_orbit_endpoint'] ?? '' ) );
+		if ( ! empty( $orbit_endpoint ) ) {
+			update_option( 'plaf_orbit_endpoint', $orbit_endpoint );
+		}
+
+		$orbit_api_key = sanitize_text_field( wp_unslash( $_POST['plaf_orbit_api_key'] ?? '' ) );
+		if ( ! empty( $orbit_api_key ) ) {
+			update_option( 'plaf_orbit_api_key', $orbit_api_key );
+		}
+
+		$this->sync_to_orbit();
+
 		wp_safe_redirect( add_query_arg( 'saved', '1', wp_get_referer() ) );
 		exit;
+	}
+
+	/**
+	 * Sends current site info to Orbit via the configured endpoint.
+	 */
+	/**
+	 * Sends current site info to Orbit. Returns an array with 'ok' bool and 'error' string on failure.
+	 *
+	 * @return array{ok: bool, error?: string, http_code?: int}
+	 */
+	public function sync_to_orbit(): array {
+		$api_key  = get_option( 'plaf_orbit_api_key', '' );
+		$endpoint = get_option( 'plaf_orbit_endpoint', '' );
+
+		if ( empty( $api_key ) ) {
+			return [ 'ok' => false, 'error' => 'API Key no configurada.' ];
+		}
+		if ( empty( $endpoint ) ) {
+			return [ 'ok' => false, 'error' => 'Endpoint no configurado.' ];
+		}
+
+		$response = wp_remote_post(
+			$endpoint,
+			[
+				'headers' => [
+					'Authorization' => 'Bearer ' . $api_key,
+					'Content-Type'  => 'application/json',
+				],
+				'body'    => wp_json_encode( [
+					'site_url'       => home_url(),
+					'site_name'      => get_bloginfo( 'name' ),
+					'wp_version'     => get_bloginfo( 'version' ),
+					'php_version'    => phpversion(),
+					'active_plugins' => get_option( 'active_plugins', [] ),
+				] ),
+				'timeout' => 10,
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return [ 'ok' => false, 'error' => $response->get_error_message() ];
+		}
+
+		$http_code = wp_remote_retrieve_response_code( $response );
+		if ( 200 !== $http_code ) {
+			$body = wp_remote_retrieve_body( $response );
+			return [ 'ok' => false, 'http_code' => $http_code, 'error' => "HTTP $http_code: $body" ];
+		}
+
+		update_option( 'plaf_orbit_last_sync', current_time( 'c' ) );
+		return [ 'ok' => true ];
+	}
+
+	/**
+	 * AJAX handler for the manual "Sync ahora" button.
+	 * Fires on: wp_ajax_plaf_orbit_sync
+	 */
+	public function handle_orbit_sync_ajax(): void {
+		check_ajax_referer( 'plaf_orbit_sync', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( [ 'message' => 'Sin permisos.' ], 403 );
+		}
+
+		$result = $this->sync_to_orbit();
+
+		if ( $result['ok'] ) {
+			wp_send_json_success( [ 'last_sync' => get_option( 'plaf_orbit_last_sync', '' ) ] );
+		} else {
+			wp_send_json_error( [ 'message' => $result['error'] ?? 'Error desconocido.' ] );
+		}
 	}
 
 	/**
@@ -164,6 +247,15 @@ class Plaf_Agency_Core_Admin {
 
 		if ( $hook === $this->whitelabel_hook ) {
 			wp_enqueue_media();
+			wp_localize_script(
+				$this->plugin_name,
+				'plafAdmin',
+				[
+					'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
+					'syncNonce' => wp_create_nonce( 'plaf_orbit_sync' ),
+					'lastSync'  => get_option( 'plaf_orbit_last_sync', '' ),
+				]
+			);
 		}
 	}
 
