@@ -38,4 +38,34 @@
 		$( this ).hide();
 		$field.find( '.plaf-upload-btn' ).text( 'Seleccionar logo' );
 	} );
+
+	$( document ).on( 'click', '#plaf-orbit-sync-btn', function ( e ) {
+		e.preventDefault();
+
+		if ( typeof plafAdmin === 'undefined' ) {
+			return;
+		}
+
+		var $btn    = $( this );
+		var $status = $( '#plaf-orbit-sync-status' );
+
+		$btn.prop( 'disabled', true ).text( 'Sincronizando…' );
+
+		$.post(
+			plafAdmin.ajaxUrl,
+			{
+				action : 'plaf_orbit_sync',
+				nonce  : plafAdmin.syncNonce,
+			},
+			function ( response ) {
+				if ( response.success ) {
+					$status.text( 'Sincronizado correctamente: ' + response.data.last_sync ).css( 'color', 'green' );
+				} else {
+					$status.text( response.data.message || 'Error al sincronizar.' ).css( 'color', 'red' );
+				}
+			}
+		).always( function () {
+			$btn.prop( 'disabled', false ).text( 'Sync ahora' );
+		} );
+	} );
 } )( jQuery );

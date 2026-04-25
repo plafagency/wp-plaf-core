@@ -30,7 +30,9 @@ class Plaf_Agency_Core_Activator {
 	 * @since    1.0.0
 	 */
 	public static function activate() {
-
+		if ( ! wp_next_scheduled( 'plaf_orbit_daily_sync' ) ) {
+			wp_schedule_event( time(), 'daily', 'plaf_orbit_daily_sync' );
+		}
 	}
 
 }
