@@ -161,7 +161,10 @@ class Plaf_Agency_Core {
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
 		$this->loader->add_action( 'admin_post_plaf_save_whitelabel', $plugin_admin, 'save_whitelabel_settings' );
+		$this->loader->add_action( 'admin_post_plaf_save_orbit', $plugin_admin, 'save_orbit_settings' );
 		$this->loader->add_action( 'wp_dashboard_setup', $plugin_admin, 'customize_dashboard' );
+		$this->loader->add_action( 'wp_ajax_plaf_orbit_sync', $plugin_admin, 'handle_orbit_sync_ajax' );
+		$this->loader->add_action( 'plaf_orbit_daily_sync', $plugin_admin, 'sync_to_orbit' );
 
 	}
 
