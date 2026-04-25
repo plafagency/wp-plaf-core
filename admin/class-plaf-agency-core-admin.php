@@ -129,12 +129,20 @@ class Plaf_Agency_Core_Admin {
 	/**
 	 * Sends current site info to Orbit via the configured endpoint.
 	 */
-	public function sync_to_orbit(): void {
+	/**
+	 * Sends current site info to Orbit. Returns an array with 'ok' bool and 'error' string on failure.
+	 *
+	 * @return array{ok: bool, error?: string, http_code?: int}
+	 */
+	public function sync_to_orbit(): array {
 		$api_key  = get_option( 'plaf_orbit_api_key', '' );
 		$endpoint = get_option( 'plaf_orbit_endpoint', '' );
 
-		if ( empty( $api_key ) || empty( $endpoint ) ) {
-			return;
+		if ( empty( $api_key ) ) {
+			return [ 'ok' => false, 'error' => 'API Key no configurada.' ];
+		}
+		if ( empty( $endpoint ) ) {
+			return [ 'ok' => false, 'error' => 'Endpoint no configurado.' ];
 		}
 
 		$response = wp_remote_post(
@@ -155,9 +163,18 @@ class Plaf_Agency_Core_Admin {
 			]
 		);
 
-		if ( ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response ) ) {
-			update_option( 'plaf_orbit_last_sync', current_time( 'c' ) );
+		if ( is_wp_error( $response ) ) {
+			return [ 'ok' => false, 'error' => $response->get_error_message() ];
 		}
+
+		$http_code = wp_remote_retrieve_response_code( $response );
+		if ( 200 !== $http_code ) {
+			$body = wp_remote_retrieve_body( $response );
+			return [ 'ok' => false, 'http_code' => $http_code, 'error' => "HTTP $http_code: $body" ];
+		}
+
+		update_option( 'plaf_orbit_last_sync', current_time( 'c' ) );
+		return [ 'ok' => true ];
 	}
 
 	/**
@@ -171,13 +188,12 @@ class Plaf_Agency_Core_Admin {
 			wp_send_json_error( [ 'message' => 'Sin permisos.' ], 403 );
 		}
 
-		$this->sync_to_orbit();
+		$result = $this->sync_to_orbit();
 
-		$last_sync = get_option( 'plaf_orbit_last_sync', '' );
-		if ( $last_sync ) {
-			wp_send_json_success( [ 'last_sync' => $last_sync ] );
+		if ( $result['ok'] ) {
+			wp_send_json_success( [ 'last_sync' => get_option( 'plaf_orbit_last_sync', '' ) ] );
 		} else {
-			wp_send_json_error( [ 'message' => 'Error al sincronizar. Verificá la API Key y el endpoint.' ] );
+			wp_send_json_error( [ 'message' => $result['error'] ?? 'Error desconocido.' ] );
 		}
 	}
 
