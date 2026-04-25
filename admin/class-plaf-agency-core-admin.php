@@ -210,8 +210,14 @@ class Plaf_Agency_Core_Admin {
 
 		$http_code = wp_remote_retrieve_response_code( $response );
 		if ( 200 !== $http_code ) {
+			if ( 404 === $http_code ) {
+				return [ 'ok' => false, 'http_code' => $http_code, 'error' => 'Endpoint no encontrado (404). Verificá que la URL sea correcta y que la función esté desplegada.' ];
+			}
 			$body = wp_remote_retrieve_body( $response );
-			return [ 'ok' => false, 'http_code' => $http_code, 'error' => "HTTP $http_code: $body" ];
+			// If it's a JSON error from the function, try to extract the message
+			$json = json_decode( $body, true );
+			$error_msg = isset( $json['error'] ) ? $json['error'] : substr( $body, 0, 200 );
+			return [ 'ok' => false, 'http_code' => $http_code, 'error' => "HTTP $http_code: $error_msg" ];
 		}
 
 		update_option( 'plaf_orbit_last_sync', current_time( 'c' ) );
