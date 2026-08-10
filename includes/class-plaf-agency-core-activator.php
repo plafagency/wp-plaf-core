@@ -33,6 +33,9 @@ class Plaf_Agency_Core_Activator {
 		if ( ! wp_next_scheduled( 'plaf_orbit_daily_sync' ) ) {
 			wp_schedule_event( time(), 'daily', 'plaf_orbit_daily_sync' );
 		}
+		if ( ! wp_next_scheduled( 'plaf_orbit_monthly_cleanup' ) ) {
+			wp_schedule_event( time(), 'monthly', 'plaf_orbit_monthly_cleanup' );
+		}
 	}
 
 }
