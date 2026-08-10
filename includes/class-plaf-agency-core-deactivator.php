@@ -34,6 +34,10 @@ class Plaf_Agency_Core_Deactivator {
 		if ( $timestamp ) {
 			wp_unschedule_event( $timestamp, 'plaf_orbit_daily_sync' );
 		}
+		$cleanup_timestamp = wp_next_scheduled( 'plaf_orbit_monthly_cleanup' );
+		if ( $cleanup_timestamp ) {
+			wp_unschedule_event( $cleanup_timestamp, 'plaf_orbit_monthly_cleanup' );
+		}
 	}
 
 }

@@ -157,6 +157,7 @@ class Plaf_Agency_Core {
 
 		$plugin_admin = new Plaf_Agency_Core_Admin( $this->get_plugin_name(), $this->get_version() );
 
+		$this->loader->add_filter( 'cron_schedules', $plugin_admin, 'add_cron_schedules' );
 		$this->loader->add_action( 'admin_menu', $plugin_admin, 'add_admin_menu' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
@@ -165,6 +166,8 @@ class Plaf_Agency_Core {
 		$this->loader->add_action( 'wp_dashboard_setup', $plugin_admin, 'customize_dashboard' );
 		$this->loader->add_action( 'wp_ajax_plaf_orbit_sync', $plugin_admin, 'handle_orbit_sync_ajax' );
 		$this->loader->add_action( 'plaf_orbit_daily_sync', $plugin_admin, 'sync_to_orbit' );
+		$this->loader->add_action( 'upgrader_process_complete', $plugin_admin, 'log_update_event', 10, 2 );
+		$this->loader->add_action( 'plaf_orbit_monthly_cleanup', $plugin_admin, 'run_monthly_cleanup' );
 
 	}
 
